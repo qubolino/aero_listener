@@ -95,12 +95,6 @@ cursor.execute('''INSERT OR REPLACE  INTO messages(CANid, Param_Text, Param_Valu
 memdb.commit()
 
 
-#confdb = sqlite3.connect('config.db')
-#confcur = confdb.cursor()
-
-print('Bring up CAN0....')
-#os.system("sudo /sbin/ip link set can0 up type can bitrate 500000")
-time.sleep(0.1)
 
 try:
 	bus = can.interface.Bus(channel='can0', bustype='socketcan_native')
@@ -109,6 +103,10 @@ except OSError:
 	exit()
 
 print('Ready')
+
+def update_message(value, timestamp, can_id, param_name):
+	cursor.execute('''UPDATE messages SET Param_Value=?, timestamp=? WHERE CANid=? and Param_Text=?''', (value, timestamp, can_id, param_name))
+			
 
 try:
 	while True:
@@ -119,109 +117,110 @@ try:
 		message = bus.recv()	# Wait until a message is received.
 		s=''
 		c = '{0:f} {1:x} {2:x} '.format(message.timestamp, message.arbitration_id, message.dlc)
-#		confcur.execute('''SELECT structure FROM CANmsg WHERE CANid=?''', (message.arbitration_id))
-#		msg_config = confcur.fetchone()
-#		structure = msg_config[0]
-		CANid=message.arbitration_id
+
+		CANid = message.arbitration_id
 		if CANid == 25:
-			cursor.execute('''UPDATE messages SET Param_Value=?, timestamp=? WHERE CANid=? and Param_Text=?''', ((message.data[0])|(message.data[1]<<8)|(message.data[2]<<16)|(message.data[3]<<32), message.timestamp, CANid, "TimeSync"))
+			timesync = (message.data[0])|(message.data[1]<<8)|(message.data[2]<<16)|(message.data[3]<<32)
+			update_message(timesync, message.timestamp, CANid, "TimeSync")
 			memdb.commit()
 		elif CANid == 40:
-			cursor.execute('''UPDATE messages SET Param_Value=?, timestamp=? WHERE CANid=? and Param_Text=?''', ((message.data[0])|(message.data[1]<<8), message.timestamp, CANid, "Airspeed"))
-			cursor.execute('''UPDATE messages SET Param_Value=?, timestamp=? WHERE CANid=? and Param_Text=?''', ((message.data[2])|(message.data[3]<<8)|(message.data[4]<<16), message.timestamp, CANid, "Altitude"))
+			Airspeed = (message.data[0])|(message.data[1]<<8)
+			update_message(Airspeed, message.timestamp, CANid, 'Airspeed')
+			Altitude = (message.data[2])|(message.data[3]<<8)#|(message.data[4]<<16)
+			update_message(Altitude, message.timestamp, CANid, 'Altitude')
 			VerticalSpeed = (message.data[5])|(message.data[6]<<8)
 			if VerticalSpeed > 32768:
 				VerticalSpeed = VerticalSpeed - 65536
-			cursor.execute('''UPDATE messages SET Param_Value=?, timestamp=? WHERE CANid=? and Param_Text=?''', (VerticalSpeed, message.timestamp, CANid, "VerticalSpeed"))
+			update_message(VerticalSpeed, message.timestamp, CANid, 'VerticalSpeed')
 			memdb.commit()
 		elif CANid == 41:
-			cursor.execute('''UPDATE messages SET Param_Value=?, timestamp=? WHERE CANid=? and Param_Text=?''', ((message.data[0])|(message.data[1]<<8),  message.timestamp, CANid, "AoA"))
+			update_message((message.data[0])|(message.data[1]<<8),  message.timestamp, CANid, "AoA")
 			memdb.commit()
 		elif CANid == 42:
 			OAT = (message.data[0])|(message.data[1]<<8)
 			if OAT > 32768:
 				OAT = OAT - 65536
 			OAT = OAT/10
-			cursor.execute('''UPDATE messages SET Param_Value=?, timestamp=? WHERE CANid=? and Param_Text=?''', (OAT, message.timestamp, CANid, "OAT"))
-			cursor.execute('''UPDATE messages SET Param_Value=?, timestamp=? WHERE CANid=? and Param_Text=?''', (message.data[2], message.timestamp, CANid, "Humidity"))
+			update_message(VerticalSpeed, message.timestamp, CANid, 'OAT')
+			update_message(message.data[2], message.timestamp, CANid, "Humidity")
 			memdb.commit()
 		elif CANid == 43:
-			cursor.execute('''UPDATE messages SET Param_Value=?, timestamp=? WHERE CANid=? and Param_Text=?''', ((message.data[0])|(message.data[1]<<8), message.timestamp, CANid, "RawStaticPressure"))
-			cursor.execute('''UPDATE messages SET Param_Value=?, timestamp=? WHERE CANid=? and Param_Text=?''', (message.data[2], message.timestamp, CANid, "RawSensorTemperature"))
+			update_message((message.data[0])|(message.data[1]<<8), message.timestamp, CANid, "RawStaticPressure")
+			update_message(message.data[2], message.timestamp, CANid, "RawSensorTemperature")
 			memdb.commit()
 		elif CANid == 46:
-			cursor.execute('''UPDATE messages SET Param_Value=?, timestamp=? WHERE CANid=? and Param_Text=?''', ((message.data[0])|(message.data[1]<<8), message.timestamp, CANid, "QNH"))
+			update_message((message.data[0])|(message.data[1]<<8), message.timestamp, CANid, "QNH")
 			memdb.commit()
 		elif CANid == 50:
-			cursor.execute('''UPDATE messages SET Param_Value=?, timestamp=? WHERE CANid=? and Param_Text=?''', ((message.data[0])|(message.data[1]<<8), message.timestamp, CANid, "RPM"))
-			cursor.execute('''UPDATE messages SET Param_Value=?, timestamp=? WHERE CANid=? and Param_Text=?''', ((message.data[2])|(message.data[3]<<8), message.timestamp, CANid, "FuelPressure"))
-			cursor.execute('''UPDATE messages SET Param_Value=?, timestamp=? WHERE CANid=? and Param_Text=?''', ((message.data[4])|(message.data[5]<<8), message.timestamp, CANid, "FuelFlow"))
+			update_message((message.data[0])|(message.data[1]<<8), message.timestamp, CANid, "RPM")
+			update_message((message.data[2])|(message.data[3]<<8), message.timestamp, CANid, "FuelPressure")
+			update_message((message.data[4])|(message.data[5]<<8), message.timestamp, CANid, "FuelFlow")
 			memdb.commit()
 		elif CANid == 72:
-			cursor.execute('''UPDATE messages SET Param_Value=?, timestamp=? WHERE CANid=? and Param_Text=?''', ((message.data[0])|(message.data[1]<<8), message.timestamp, CANid, "Heading"))
+			update_message((message.data[0])|(message.data[1]<<8), message.timestamp, CANid, "Heading")
 			Roll = (message.data[2])|(message.data[3]<<8)
 			if Roll > 32768:
 				Roll = Roll - 65536
-			cursor.execute('''UPDATE messages SET Param_Value=?, timestamp=? WHERE CANid=? and Param_Text=?''', (Roll, message.timestamp, CANid, "Roll"))
+			update_message(Roll, message.timestamp, CANid, "Roll")
 			Pitch = (message.data[4])|(message.data[5]<<8)
 			if Pitch > 32768:
 				Pitch = Pitch - 65536
-			cursor.execute('''UPDATE messages SET Param_Value=?, timestamp=? WHERE CANid=? and Param_Text=?''', (Pitch, message.timestamp, CANid, "Pitch"))
+			update_message(Pitch, message.timestamp, CANid, "Pitch")
 			TurnRate = (message.data[6])|(message.data[7]<<8)
 			if TurnRate > 32768:
 				TurnRate = TurnRate - 65536
-			cursor.execute('''UPDATE messages SET Param_Value=?, timestamp=? WHERE CANid=? and Param_Text=?''', (TurnRate, message.timestamp, CANid, "TurnRate"))
+			update_message(TurnRate, message.timestamp, CANid, "TurnRate")
 			memdb.commit()
 		elif CANid == 73:
 			AccX = (message.data[0])|(message.data[1]<<8)
 			if AccX > 32768:
 				AccX = AccX - 65536
-			cursor.execute('''UPDATE messages SET Param_Value=?, timestamp=? WHERE CANid=? and Param_Text=?''', (AccX, message.timestamp, CANid, "AccX"))
+			update_message(AccX, message.timestamp, CANid, "AccX")
 			AccY = (message.data[2])|(message.data[3]<<8)
 			if AccY > 32768:
 				AccY = AccY - 65536
-			cursor.execute('''UPDATE messages SET Param_Value=?, timestamp=? WHERE CANid=? and Param_Text=?''', (AccY, message.timestamp, CANid, "AccY"))
+			update_message(AccY, message.timestamp, CANid, "AccY")
 			AccZ = (message.data[4])|(message.data[5]<<8)
 			if AccZ > 32768:
 				AccZ = AccZ - 65536
-			cursor.execute('''UPDATE messages SET Param_Value=?, timestamp=? WHERE CANid=? and Param_Text=?''', (AccZ, message.timestamp, CANid, "AccZ"))
+			update_message(AccZ, message.timestamp, CANid, "AccZ")
 			memdb.commit()
 		elif CANid == 80:
-			cursor.execute('''UPDATE messages SET Param_Value=?, timestamp=? WHERE CANid=? and Param_Text=?''', ((message.data[0])|(message.data[1]<<8), message.timestamp, CANid, "FuelTank1"))
-#			cursor.execute('''UPDATE messages SET Param_Value=?, timestamp=? WHERE CANid=? and Param_Text=?''', ((message.data[2])|(message.data[3]<<8), message.timestamp, CANid, "FuelTank2"))
+			update_message((message.data[0])|(message.data[1]<<8), message.timestamp, CANid, "FuelTank1")
+			update_message((message.data[2])|(message.data[3]<<8), message.timestamp, CANid, "FuelTank2")
 			memdb.commit()
 		elif CANid == 81:
-			cursor.execute('''UPDATE messages SET Param_Value=?, timestamp=? WHERE CANid=? and Param_Text=?''', ((message.data[0])|(message.data[1]<<8), message.timestamp, CANid, "OilPressure"))
-			cursor.execute('''UPDATE messages SET Param_Value=?, timestamp=? WHERE CANid=? and Param_Text=?''', ((message.data[2])|(message.data[3]<<8), message.timestamp, CANid, "OilTemperature"))
+			update_message((message.data[0])|(message.data[1]<<8), message.timestamp, CANid, "OilPressure")
+			update_message((message.data[2])|(message.data[3]<<8), message.timestamp, CANid, "OilTemperature")
 			memdb.commit()
 		elif CANid == 82:
-			cursor.execute('''UPDATE messages SET Param_Value=?, timestamp=? WHERE CANid=? and Param_Text=?''', ((message.data[0])|(message.data[1]<<8), message.timestamp, CANid, "EGT1"))
-			cursor.execute('''UPDATE messages SET Param_Value=?, timestamp=? WHERE CANid=? and Param_Text=?''', ((message.data[2])|(message.data[3]<<8), message.timestamp, CANid, "EGT2"))
-			cursor.execute('''UPDATE messages SET Param_Value=?, timestamp=? WHERE CANid=? and Param_Text=?''', ((message.data[4])|(message.data[5]<<8), message.timestamp, CANid, "CHT1"))
-			cursor.execute('''UPDATE messages SET Param_Value=?, timestamp=? WHERE CANid=? and Param_Text=?''', ((message.data[6])|(message.data[7]<<8), message.timestamp, CANid, "CHT2"))
+			update_message((message.data[0])|(message.data[1]<<8), message.timestamp, CANid, "EGT1")
+			update_message((message.data[2])|(message.data[3]<<8), message.timestamp, CANid, "EGT2")
+			update_message((message.data[4])|(message.data[5]<<8), message.timestamp, CANid, "CHT1")
+			update_message((message.data[6])|(message.data[7]<<8), message.timestamp, CANid, "CHT2")
 			memdb.commit()
 		elif CANid == 83:
-			cursor.execute('''UPDATE messages SET Param_Value=?, timestamp=? WHERE CANid=? and Param_Text=?''', ((message.data[0])|(message.data[1]<<8), message.timestamp, CANid, "EGT3"))
-			cursor.execute('''UPDATE messages SET Param_Value=?, timestamp=? WHERE CANid=? and Param_Text=?''', ((message.data[2])|(message.data[3]<<8), message.timestamp, CANid, "EGT4"))
-			cursor.execute('''UPDATE messages SET Param_Value=?, timestamp=? WHERE CANid=? and Param_Text=?''', ((message.data[4])|(message.data[5]<<8), message.timestamp, CANid, "CHT3"))
-			cursor.execute('''UPDATE messages SET Param_Value=?, timestamp=? WHERE CANid=? and Param_Text=?''', ((message.data[6])|(message.data[7]<<8), message.timestamp, CANid, "CHT4"))
+			update_message((message.data[0])|(message.data[1]<<8), message.timestamp, CANid, "EGT3")
+			update_message((message.data[2])|(message.data[3]<<8), message.timestamp, CANid, "EGT4")
+			update_message((message.data[4])|(message.data[5]<<8), message.timestamp, CANid, "CHT3")
+			update_message((message.data[6])|(message.data[7]<<8), message.timestamp, CANid, "CHT4")
 			memdb.commit()
 		elif CANid == 84:
-			cursor.execute('''UPDATE messages SET Param_Value=?, timestamp=? WHERE CANid=? and Param_Text=?''', ((message.data[0])|(message.data[1]<<8), message.timestamp, CANid, "EGT5"))
-			cursor.execute('''UPDATE messages SET Param_Value=?, timestamp=? WHERE CANid=? and Param_Text=?''', ((message.data[2])|(message.data[3]<<8), message.timestamp, CANid, "EGT6"))
-			cursor.execute('''UPDATE messages SET Param_Value=?, timestamp=? WHERE CANid=? and Param_Text=?''', ((message.data[4])|(message.data[5]<<8), message.timestamp, CANid, "CHT5"))
-			cursor.execute('''UPDATE messages SET Param_Value=?, timestamp=? WHERE CANid=? and Param_Text=?''', ((message.data[6])|(message.data[7]<<8), message.timestamp, CANid, "CHT6"))
+			update_message((message.data[0])|(message.data[1]<<8), message.timestamp, CANid, "EGT5")
+			update_message((message.data[2])|(message.data[3]<<8), message.timestamp, CANid, "EGT6")
+			update_message((message.data[4])|(message.data[5]<<8), message.timestamp, CANid, "CHT5")
+			update_message((message.data[6])|(message.data[7]<<8), message.timestamp, CANid, "CHT6")
 			memdb.commit()
 		elif CANid == 85:
-			cursor.execute('''UPDATE messages SET Param_Value=?, timestamp=? WHERE CANid=? and Param_Text=?''', ((message.data[0])|(message.data[1]<<8), message.timestamp, CANid, "Volts"))
+			update_message((message.data[0])|(message.data[1]<<8), message.timestamp, CANid, "Volts")
 			AmpsAlternator = (message.data[2])|(message.data[3]<<8)
 			if AmpsAlternator > 32768:
 				AmpsAlternator = AmpsAlternator - 65536
-			cursor.execute('''UPDATE messages SET Param_Value=?, timestamp=? WHERE CANid=? and Param_Text=?''', (AmpsAlternator, message.timestamp, CANid, "AmpsAlternator"))
+			update_message(AmpsAlternator, message.timestamp, CANid, "AmpsAlternator")
 			AmpsBattery = (message.data[4])|(message.data[5]<<8)
 			if AmpsBattery > 32768:
 				AmpsBattery = AmpsBattery - 65536
-			cursor.execute('''UPDATE messages SET Param_Value=?, timestamp=? WHERE CANid=? and Param_Text=?''', (AmpsBattery, message.timestamp, CANid, "AmpsBattery"))
+			update_message(AmpsBattery, message.timestamp, CANid, "AmpsBattery")
 			memdb.commit()
 		elif CANid == 99:
 			Lat = (message.data[0])|(message.data[1]<<8)|(message.data[2]<<16)|(message.data[3]<<24)
@@ -232,20 +231,21 @@ try:
 				Lon = Lon - 4294967295
 			Lat = Lat/1000000
 			Lon = Lon/1000000
-			cursor.execute('''UPDATE messages SET Param_Value=?, timestamp=? WHERE CANid=? and Param_Text=?''', (Lat, message.timestamp, CANid, "GPS_Lat"))
-			cursor.execute('''UPDATE messages SET Param_Value=?, timestamp=? WHERE CANid=? and Param_Text=?''', (Lon, message.timestamp, CANid, "GPS_Lon"))
+			update_message(Lat, message.timestamp, CANid, 'GPS_Lat')
+			update_message(Lon, message.timestamp, CANid, 'GPS_Lon')
+			memdb.commit()
 		elif CANid == 100:
-			cursor.execute('''UPDATE messages SET Param_Value=?, timestamp=? WHERE CANid=? and Param_Text=?''', ((message.data[0])|(message.data[1]<<8), message.timestamp, CANid, "GPS_GS"))
-			cursor.execute('''UPDATE messages SET Param_Value=?, timestamp=? WHERE CANid=? and Param_Text=?''', ((message.data[2])|(message.data[3]<<8), message.timestamp, CANid, "GPS_Alt"))
-			cursor.execute('''UPDATE messages SET Param_Value=?, timestamp=? WHERE CANid=? and Param_Text=?''', ((message.data[4])|(message.data[5]<<8), message.timestamp, CANid, "GPS_TRK_T"))
-			cursor.execute('''UPDATE messages SET Param_Value=?, timestamp=? WHERE CANid=? and Param_Text=?''', ((message.data[6])|(message.data[7]<<8), message.timestamp, CANid, "GPS_TRK_M"))
+			update_message((message.data[0])|(message.data[1]<<8), message.timestamp, CANid, "GPS_GS")
+			update_message((message.data[2])|(message.data[3]<<8), message.timestamp, CANid, "GPS_Alt")
+			update_message((message.data[4])|(message.data[5]<<8), message.timestamp, CANid, "GPS_TRK_T")
+			update_message((message.data[6])|(message.data[7]<<8), message.timestamp, CANid, "GPS_TRK_M")
 			memdb.commit()
 		elif CANid == 112:
-			cursor.execute('''UPDATE messages SET Param_Value=?, timestamp=? WHERE CANid=? and Param_Text=?''', ((message.data[0])|(message.data[1]<<8)|(message.data[2]<<16)|(message.data[3]<<24), message.timestamp, CANid, "EngineTimeTacho"))
-			cursor.execute('''UPDATE messages SET Param_Value=?, timestamp=? WHERE CANid=? and Param_Text=?''', ((message.data[4])|(message.data[5]<<8)|(message.data[6]<<16)|(message.data[7]<<24), message.timestamp, CANid, "EngineTimeClock"))
+			update_message((message.data[0])|(message.data[1]<<8)|(message.data[2]<<16)|(message.data[3]<<24), message.timestamp, CANid, "EngineTimeTacho")
+			update_message((message.data[4])|(message.data[5]<<8)|(message.data[6]<<16)|(message.data[7]<<24), message.timestamp, CANid, "EngineTimeClock")
 			memdb.commit()
 		elif CANid == 114:
-			cursor.execute('''UPDATE messages SET Param_Value=?, timestamp=? WHERE CANid=? and Param_Text=?''', ((message.data[0])|(message.data[1]<<8)|(message.data[2])|(message.data[3]<<8), message.timestamp, CANid, "Airswitch"))
+			update_message((message.data[0])|(message.data[1]<<8)|(message.data[2])|(message.data[3]<<8), message.timestamp, CANid, "Airswitch")
 			memdb.commit()
 		else:
 			for i in range(message.dlc ):
@@ -253,10 +253,6 @@ try:
 			cursor.execute('''INSERT OR REPLACE  INTO messages(CANid, Param_Text, msg, timestamp) VALUES(?,?,?,?)''', (CANid, "unknown", s, message.timestamp))
 			memdb.commit()
 
-
-#		for i in range(message.dlc ):
-#			s +=  '{0:x} '.format(message.data[i])
-#		print(' {}'.format(c+s))
 
 except KeyboardInterrupt:
 	print('\n\rKeyboard interrupt')
