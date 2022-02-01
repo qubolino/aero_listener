@@ -92,7 +92,6 @@ cursor.execute('''INSERT OR REPLACE  INTO messages(CANid, Param_Text, Param_Valu
 #Msg. 114 Airswitch (Flight time)
 cursor.execute('''INSERT OR REPLACE  INTO messages(CANid, Param_Text, Param_Value, timestamp) VALUES(?,?,?,?)''', (120, "Airswitch", 0, time.time() ))
 
-
 memdb.commit()
 
 
@@ -121,137 +120,116 @@ try:
 
 		CANid = message.arbitration_id
 		if CANid == 25:
-			timesync = (message.data[0])|(message.data[1]<<8)|(message.data[2]<<16)|(message.data[3]<<32)
+			timesync = struct.unpack('l', message.data[:4])[0]
 			update_message(timesync, message.timestamp, CANid, "TimeSync")
 			memdb.commit()
 		elif CANid == 40:
 			# cansend can0 028#004100F100040000
 			Airspeed = struct.unpack('h', message.data[:2])[0]
 			update_message(Airspeed, message.timestamp, CANid, 'Airspeed')
-			Altitude = struct.unpack('h', message.data[2:4])[0]
+			Altitude = struct.unpack('h', message.data[2:4])[0]  # meters
+			Altitude *= 3.28084  # feet
 			update_message(Altitude, message.timestamp, CANid, 'Altitude')
-			VerticalSpeed = Altitude = struct.unpack('h', message.data[5:7])[0]
+			VerticalSpeed = struct.unpack('h', message.data[5:7])[0]
 			update_message(VerticalSpeed, message.timestamp, CANid, 'VerticalSpeed')
 			memdb.commit()
 		elif CANid == 41:
-			update_message((message.data[0])|(message.data[1]<<8),  message.timestamp, CANid, "AoA")
+			update_message(struct.unpack('h', message.data[:2])[0],  message.timestamp, CANid, "AoA")
 			memdb.commit()
 		elif CANid == 42:
-			OAT = (message.data[0])|(message.data[1]<<8)
-			if OAT > 32768:
-				OAT = OAT - 65536
-			OAT = OAT/10
-			update_message(VerticalSpeed, message.timestamp, CANid, 'OAT')
+			OAT = struct.unpack('h', message.data[:2])[0]
+			OAT = OAT / 10
+			update_message(OAT, message.timestamp, CANid, 'OAT')
 			update_message(message.data[2], message.timestamp, CANid, "Humidity")
 			memdb.commit()
 		elif CANid == 43:
-			update_message((message.data[0])|(message.data[1]<<8), message.timestamp, CANid, "RawStaticPressure")
+			update_message(struct.unpack('H', message.data[:2])[0], message.timestamp, CANid, "RawStaticPressure")
 			update_message(message.data[2], message.timestamp, CANid, "RawSensorTemperature")
 			memdb.commit()
 		elif CANid == 46:
 			#cansend can0 02E#0004000000000000
-			update_message(struct.unpack('h', message.data[:2])[0], message.timestamp, CANid, "QNH")
+			update_message(struct.unpack('H', message.data[:2])[0], message.timestamp, CANid, "QNH")
 			memdb.commit()
 		elif CANid == 50:
-			update_message((message.data[0])|(message.data[1]<<8), message.timestamp, CANid, "RPM")
-			update_message((message.data[2])|(message.data[3]<<8), message.timestamp, CANid, "FuelPressure")
-			update_message((message.data[4])|(message.data[5]<<8), message.timestamp, CANid, "FuelFlow")
+			update_message(struct.unpack('H', message.data[:2])[0], message.timestamp, CANid, "RPM")
+			update_message(struct.unpack('H', message.data[2:4])[0], message.timestamp, CANid, "FuelPressure")
+			update_message(struct.unpack('H', message.data[4:6])[0], message.timestamp, CANid, "FuelFlow")
 			memdb.commit()
 		elif CANid == 72:
-			update_message((message.data[0])|(message.data[1]<<8), message.timestamp, CANid, "Heading")
-			Roll = (message.data[2])|(message.data[3]<<8)
-			if Roll > 32768:
-				Roll = Roll - 65536
+			update_message(struct.unpack('h', message.data[:2])[0], message.timestamp, CANid, "Heading")
+			Roll = struct.unpack('h', message.data[2:4])[0]
 			update_message(Roll, message.timestamp, CANid, "Roll")
-			Pitch = (message.data[4])|(message.data[5]<<8)
-			if Pitch > 32768:
-				Pitch = Pitch - 65536
+			Pitch = struct.unpack('h', message.data[4:6])[0]
 			update_message(Pitch, message.timestamp, CANid, "Pitch")
-			TurnRate = (message.data[6])|(message.data[7]<<8)
-			if TurnRate > 32768:
-				TurnRate = TurnRate - 65536
+			TurnRate = struct.unpack('h', message.data[6:8])[0]
 			update_message(TurnRate, message.timestamp, CANid, "TurnRate")
 			memdb.commit()
 		elif CANid == 73:
-			AccX = (message.data[0])|(message.data[1]<<8)
-			if AccX > 32768:
-				AccX = AccX - 65536
+			AccX = struct.unpack('h', message.data[:2])[0]
 			update_message(AccX, message.timestamp, CANid, "AccX")
-			AccY = (message.data[2])|(message.data[3]<<8)
-			if AccY > 32768:
-				AccY = AccY - 65536
+			AccY = struct.unpack('h', message.data[2:4])[0]
 			update_message(AccY, message.timestamp, CANid, "AccY")
-			AccZ = (message.data[4])|(message.data[5]<<8)
-			if AccZ > 32768:
-				AccZ = AccZ - 65536
+			AccZ = struct.unpack('h', message.data[4:6])[0]
 			update_message(AccZ, message.timestamp, CANid, "AccZ")
 			memdb.commit()
 		elif CANid == 80:
-			update_message((message.data[0])|(message.data[1]<<8), message.timestamp, CANid, "FuelTank1")
-			update_message((message.data[2])|(message.data[3]<<8), message.timestamp, CANid, "FuelTank2")
+			update_message(struct.unpack('H', message.data[:2])[0], message.timestamp, CANid, "FuelTank1")
+			update_message(struct.unpack('H', message.data[2:4])[0], message.timestamp, CANid, "FuelTank2")
 			memdb.commit()
 		elif CANid == 81:
-			update_message((message.data[0])|(message.data[1]<<8), message.timestamp, CANid, "OilPressure")
-			update_message((message.data[2])|(message.data[3]<<8), message.timestamp, CANid, "OilTemperature")
+			update_message(struct.unpack('H', message.data[:2])[0], message.timestamp, CANid, "OilPressure")
+			update_message(struct.unpack('H', message.data[2:4])[0], message.timestamp, CANid, "OilTemperature")
 			memdb.commit()
 		elif CANid == 82:
-			update_message((message.data[0])|(message.data[1]<<8), message.timestamp, CANid, "EGT1")
-			update_message((message.data[2])|(message.data[3]<<8), message.timestamp, CANid, "EGT2")
-			update_message((message.data[4])|(message.data[5]<<8), message.timestamp, CANid, "CHT1")
-			update_message((message.data[6])|(message.data[7]<<8), message.timestamp, CANid, "CHT2")
+			update_message(struct.unpack('H', message.data[:2])[0], message.timestamp, CANid, "EGT1")
+			update_message(struct.unpack('H', message.data[2:4])[0], message.timestamp, CANid, "EGT2")
+			update_message(struct.unpack('H', message.data[4:6])[0], message.timestamp, CANid, "CHT1")
+			update_message(struct.unpack('H', message.data[6:8])[0], message.timestamp, CANid, "CHT2")
 			memdb.commit()
 		elif CANid == 83:
-			update_message((message.data[0])|(message.data[1]<<8), message.timestamp, CANid, "EGT3")
-			update_message((message.data[2])|(message.data[3]<<8), message.timestamp, CANid, "EGT4")
-			update_message((message.data[4])|(message.data[5]<<8), message.timestamp, CANid, "CHT3")
-			update_message((message.data[6])|(message.data[7]<<8), message.timestamp, CANid, "CHT4")
+			update_message(struct.unpack('H', message.data[:2])[0], message.timestamp, CANid, "EGT3")
+			update_message(struct.unpack('H', message.data[2:4])[0], message.timestamp, CANid, "EGT4")
+			update_message(struct.unpack('H', message.data[4:6])[0], message.timestamp, CANid, "CHT3")
+			update_message(struct.unpack('H', message.data[6:8])[0], message.timestamp, CANid, "CHT4")
 			memdb.commit()
 		elif CANid == 84:
-			update_message((message.data[0])|(message.data[1]<<8), message.timestamp, CANid, "EGT5")
-			update_message((message.data[2])|(message.data[3]<<8), message.timestamp, CANid, "EGT6")
-			update_message((message.data[4])|(message.data[5]<<8), message.timestamp, CANid, "CHT5")
-			update_message((message.data[6])|(message.data[7]<<8), message.timestamp, CANid, "CHT6")
+			update_message(struct.unpack('H', message.data[:2])[0], message.timestamp, CANid, "EGT5")
+			update_message(struct.unpack('H', message.data[2:4])[0], message.timestamp, CANid, "EGT6")
+			update_message(struct.unpack('H', message.data[4:6])[0], message.timestamp, CANid, "CHT5")
+			update_message(struct.unpack('H', message.data[6:8])[0], message.timestamp, CANid, "CHT6")
 			memdb.commit()
 		elif CANid == 85:
-			update_message((message.data[0])|(message.data[1]<<8), message.timestamp, CANid, "Volts")
-			AmpsAlternator = (message.data[2])|(message.data[3]<<8)
-			if AmpsAlternator > 32768:
-				AmpsAlternator = AmpsAlternator - 65536
+			update_message(struct.unpack('H', message.data[:2])[0], message.timestamp, CANid, "Volts")
+			AmpsAlternator = struct.unpack('h', message.data[2:4])[0]
 			update_message(AmpsAlternator, message.timestamp, CANid, "AmpsAlternator")
-			AmpsBattery = (message.data[4])|(message.data[5]<<8)
-			if AmpsBattery > 32768:
-				AmpsBattery = AmpsBattery - 65536
+			AmpsBattery = struct.unpack('h', message.data[4:6])[0]
 			update_message(AmpsBattery, message.timestamp, CANid, "AmpsBattery")
 			memdb.commit()
 		elif CANid == 99:
-			Lat = (message.data[0])|(message.data[1]<<8)|(message.data[2]<<16)|(message.data[3]<<24)
-			if Lat > 2147483648:
-				Lat = Lat - 4294967295
-			Lon = (message.data[4])|(message.data[5]<<8)|(message.data[6]<<16)|(message.data[7]<<24)
-			if Lon > 2147483648:
-				Lon = Lon - 4294967295
+			Lat = struct.unpack('l', message.data[:4])[0]
+			Lon = struct.unpack('l', message.data[4:8])[0]
 			Lat = Lat/1000000
 			Lon = Lon/1000000
 			update_message(Lat, message.timestamp, CANid, 'GPS_Lat')
 			update_message(Lon, message.timestamp, CANid, 'GPS_Lon')
 			memdb.commit()
 		elif CANid == 100:
-			update_message((message.data[0])|(message.data[1]<<8), message.timestamp, CANid, "GPS_GS")
-			update_message((message.data[2])|(message.data[3]<<8), message.timestamp, CANid, "GPS_Alt")
-			update_message((message.data[4])|(message.data[5]<<8), message.timestamp, CANid, "GPS_TRK_T")
-			update_message((message.data[6])|(message.data[7]<<8), message.timestamp, CANid, "GPS_TRK_M")
+			update_message(struct.unpack('H', message.data[:2])[0], message.timestamp, CANid, "GPS_GS")
+			update_message(struct.unpack('H', message.data[2:4])[0], message.timestamp, CANid, "GPS_Alt")
+			update_message(struct.unpack('H', message.data[4:6])[0], message.timestamp, CANid, "GPS_TRK_T")
+			update_message(struct.unpack('H', message.data[6:8])[0], message.timestamp, CANid, "GPS_TRK_M")
 			memdb.commit()
 		elif CANid == 112:
-			update_message((message.data[0])|(message.data[1]<<8)|(message.data[2]<<16)|(message.data[3]<<24), message.timestamp, CANid, "EngineTimeTacho")
-			update_message((message.data[4])|(message.data[5]<<8)|(message.data[6]<<16)|(message.data[7]<<24), message.timestamp, CANid, "EngineTimeClock")
+			update_message(struct.unpack('L', message.data[:4])[0], message.timestamp, CANid, "EngineTimeTacho")
+			update_message(struct.unpack('l', message.data[4:8])[0], message.timestamp, CANid, "EngineTimeClock")
 			memdb.commit()
 		elif CANid == 114:
-			update_message((message.data[0])|(message.data[1]<<8)|(message.data[2])|(message.data[3]<<8), message.timestamp, CANid, "Airswitch")
+			update_message(struct.unpack('L', message.data[:4])[0], message.timestamp, CANid, "Airswitch")
 			memdb.commit()
 		else:
 			for i in range(message.dlc ):
 				s +=  '{0:x} '.format(message.data[i])
-			cursor.execute('''INSERT OR REPLACE  INTO messages(CANid, Param_Text, msg, timestamp) VALUES(?,?,?,?)''', (CANid, "unknown", s, message.timestamp))
+			update_message(s, CANid, message.timestamp, "unknown")
 			memdb.commit()
 
 
