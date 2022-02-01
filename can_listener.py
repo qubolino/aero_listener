@@ -148,7 +148,7 @@ try:
 			update_message(message.data[2], message.timestamp, CANid, "RawSensorTemperature")
 			memdb.commit()
 		elif CANid == 46:
-			update_message((message.data[0])|(message.data[1]<<8), message.timestamp, CANid, "QNH")
+			update_message((message.data[0]<<8)|(message.data[1]), message.timestamp, CANid, "QNH")
 			memdb.commit()
 		elif CANid == 50:
 			update_message((message.data[0])|(message.data[1]<<8), message.timestamp, CANid, "RPM")
