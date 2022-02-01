@@ -124,13 +124,12 @@ try:
 			update_message(timesync, message.timestamp, CANid, "TimeSync")
 			memdb.commit()
 		elif CANid == 40:
-			Airspeed = (message.data[0])|(message.data[1]<<8)
+			# cansend can0 028#004100F100040000
+			Airspeed = (message.data[0]<<8)|(message.data[1])
 			update_message(Airspeed, message.timestamp, CANid, 'Airspeed')
-			Altitude = (message.data[2])|(message.data[3]<<8)#|(message.data[4]<<16)
+			Altitude = (message.data[2]<<8)|(message.data[3])#|(message.data[4]<<16)
 			update_message(Altitude, message.timestamp, CANid, 'Altitude')
-			VerticalSpeed = (message.data[5])|(message.data[6]<<8)
-			if VerticalSpeed > 32768:
-				VerticalSpeed = VerticalSpeed - 65536
+			VerticalSpeed = (message.data[5]<<8)|(message.data[6])
 			update_message(VerticalSpeed, message.timestamp, CANid, 'VerticalSpeed')
 			memdb.commit()
 		elif CANid == 41:
