@@ -126,11 +126,11 @@ try:
 			memdb.commit()
 		elif CANid == 40:
 			# cansend can0 028#004100F100040000
-			Airspeed = (message.data[0]<<8)|(message.data[1])
+			Airspeed = struct.unpack('h', message.data[:2])[0]
 			update_message(Airspeed, message.timestamp, CANid, 'Airspeed')
-			Altitude = struct.unpack('h', message.data[2:4])#((message.data[2]<<8)|(message.data[3]))#|(message.data[4]<<16)
+			Altitude = struct.unpack('h', message.data[2:4])[0]
 			update_message(Altitude, message.timestamp, CANid, 'Altitude')
-			VerticalSpeed = (message.data[5]<<8)|(message.data[6])
+			VerticalSpeed = Altitude = struct.unpack('h', message.data[5:7])[0]
 			update_message(VerticalSpeed, message.timestamp, CANid, 'VerticalSpeed')
 			memdb.commit()
 		elif CANid == 41:
@@ -149,8 +149,8 @@ try:
 			update_message(message.data[2], message.timestamp, CANid, "RawSensorTemperature")
 			memdb.commit()
 		elif CANid == 46:
-			#cansend can0 02E#0400000000000000
-			update_message((message.data[0]<<8)|(message.data[1]), message.timestamp, CANid, "QNH")
+			#cansend can0 02E#0004000000000000
+			update_message(struct.unpack('h', message.data[:2])[0], message.timestamp, CANid, "QNH")
 			memdb.commit()
 		elif CANid == 50:
 			update_message((message.data[0])|(message.data[1]<<8), message.timestamp, CANid, "RPM")
