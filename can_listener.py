@@ -5,6 +5,7 @@ import can
 import time
 import os
 import sqlite3
+import numpy as np
 
 #get the database ready
 memdb = sqlite3.connect('/memdb/memdb.db')
@@ -127,7 +128,7 @@ try:
 			# cansend can0 028#004100F100040000
 			Airspeed = (message.data[0]<<8)|(message.data[1])
 			update_message(Airspeed, message.timestamp, CANid, 'Airspeed')
-			Altitude = (message.data[2]<<8)|(message.data[3])#|(message.data[4]<<16)
+			Altitude = np. int16((message.data[2]<<8)|(message.data[3]))#|(message.data[4]<<16)
 			update_message(Altitude, message.timestamp, CANid, 'Altitude')
 			VerticalSpeed = (message.data[5]<<8)|(message.data[6])
 			update_message(VerticalSpeed, message.timestamp, CANid, 'VerticalSpeed')
@@ -148,6 +149,7 @@ try:
 			update_message(message.data[2], message.timestamp, CANid, "RawSensorTemperature")
 			memdb.commit()
 		elif CANid == 46:
+			#cansend can0 02E#0400000000000000
 			update_message((message.data[0]<<8)|(message.data[1]), message.timestamp, CANid, "QNH")
 			memdb.commit()
 		elif CANid == 50:
