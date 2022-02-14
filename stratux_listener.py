@@ -31,8 +31,8 @@ if __name__ == "__main__" :
 
             print(roll, pitch, heading, slipskid, yawrate, g, ias, alt, vs)
 
-            db.update_message(roll, message.timestamp, CANid, "Roll")
-            db.update_message(pitch, message.timestamp, CANid, "Pitch")
+            db.update_message(roll, time.time(), 72, "Roll")
+            db.update_message(pitch, time.time(), 72, "Pitch")
             db.memdb.commit()
 
             # self.parent.db_write("PITCH", pitch)
