@@ -4,7 +4,7 @@ import gdl90
 import socket
 import struct
 import math
-
+import db
 
 if __name__ == "__main__" :
 
@@ -30,6 +30,11 @@ if __name__ == "__main__" :
             vs        = struct.unpack('>h', msg[20:22])[0]
 
             print(roll, pitch, heading, slipskid, yawrate, g, ias, alt, vs)
+
+			db.update_message(roll, message.timestamp, CANid, "Roll")
+			db.update_message(pitch, message.timestamp, CANid, "Pitch")
+			db.memdb.commit()
+
             # self.parent.db_write("PITCH", pitch)
             # self.parent.db_write("ROLL", roll)
             # self.parent.db_write("HEAD", heading)
