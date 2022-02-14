@@ -36,10 +36,10 @@ if __name__ == "__main__" :
 
             db.update_message(slipskid, time.time(), 66, "AccX")
             db.update_message(g,        time.time(), 66, "AccY")
-			
+
             db.update_message(ias,   time.time(), 66, 'Airspeed')
-			db.update_message(alt,   time.time(), 66, 'Altitude')
-			db.update_message(vs,    time.time(), 66, 'VerticalSpeed')
+            db.update_message(alt,   time.time(), 66, 'Altitude')
+            db.update_message(vs,    time.time(), 66, 'VerticalSpeed')
             db.memdb.commit()
 
             # self.parent.db_write("PITCH", pitch)
