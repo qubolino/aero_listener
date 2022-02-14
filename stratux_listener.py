@@ -6,11 +6,10 @@ import struct
 import math
 
 
-
 if __name__ == "__main__" :
 
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    s.bind(('', 4000))
+    s.bind(('127.0.0.1', 4000))
 
     while True:
         msg, adr = s.recvfrom(8192)
@@ -44,4 +43,4 @@ if __name__ == "__main__" :
             tmp = struct.unpack('BB', msg[14:16])
             gnd_speed = (tmp[0] << 4) | (tmp[1] >> 4)
             # self.parent.db_write("IAS", gnd_speed)
-
+            print(alt, gnd_speed)
