@@ -31,15 +31,15 @@ if __name__ == "__main__" :
 
             # print(roll, pitch, heading, slipskid, yawrate, g, ias, alt, vs)
 
-            db.update_message(roll,  time.time(), 66, "Roll")
-            db.update_message(pitch, time.time(), 66, "Pitch")
+            db.update_message(roll,  time.time(), 72, "Roll")
+            db.update_message(pitch, time.time(), 72, "Pitch")
 
-            db.update_message(slipskid, time.time(), 66, "AccX")
-            db.update_message(g,        time.time(), 66, "AccY")
+            db.update_message(slipskid, time.time(), 73, "AccX")
+            db.update_message(g,        time.time(), 73, "AccY")
 
-            db.update_message(ias,   time.time(), 66, 'Airspeed')
-            db.update_message(alt,   time.time(), 66, 'Altitude')
-            db.update_message(vs,    time.time(), 66, 'VerticalSpeed')
+            db.update_message(ias,   time.time(), 40, 'Airspeed')
+            db.update_message(alt,   time.time(), 40, 'Altitude')
+            db.update_message(vs,    time.time(), 40, 'VerticalSpeed')
             db.memdb.commit()
 
             # self.parent.db_write("PITCH", pitch)
