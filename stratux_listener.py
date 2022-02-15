@@ -29,15 +29,15 @@ if __name__ == "__main__" :
             alt       = struct.unpack('>h', msg[18:20])[0] - 5000.5
             vs        = struct.unpack('>h', msg[20:22])[0]
 
-            print(roll, pitch, heading, slipskid, yawrate, g, ias, alt, vs)
+            # print(roll, pitch, heading, slipskid, yawrate, g, ias, alt, vs)
 
             db.update_message(roll,  time.time(), 72, "Roll")
             db.update_message(pitch, time.time(), 72, "Pitch")
 
             db.update_message(slipskid, time.time(), 73, "AccX")
-            db.update_message(g,        time.time(), 73, "AccY")
+            # db.update_message(g,        time.time(), 73, "AccZ")
 
-            db.update_message(ias,   time.time(), 40, 'Airspeed')
+            # db.update_message(ias,   time.time(), 40, 'Airspeed')
             db.update_message(alt,   time.time(), 40, 'Altitude')
             db.update_message(vs,    time.time(), 40, 'VerticalSpeed')
             db.memdb.commit()
@@ -55,4 +55,4 @@ if __name__ == "__main__" :
             tmp = struct.unpack('BB', msg[14:16])
             gnd_speed = (tmp[0] << 4) | (tmp[1] >> 4)
             # self.parent.db_write("IAS", gnd_speed)
-            print(alt, gnd_speed)
+            # print(alt, gnd_speed)
