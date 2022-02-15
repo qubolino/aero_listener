@@ -1,0 +1,14 @@
+[Unit]
+Description=Get Stratux_Listener service running at boot
+
+[Service]
+ExecStart=/usr/bin/python3 /home/pi/labs/can_listener/stratux_listener.py
+Restart=always
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=Stratux_Listener
+User=pi
+Group=pi
+
+[Install]
+WantedBy=multi-user.target
