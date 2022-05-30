@@ -7,6 +7,8 @@ sudo systemctl enable CAN_Listener.service
 sudo systemctl start CAN_Listener.service
 systemctl status CAN_Listener.service
 ```
+configuration help:
+https://experimentalavionics.com/raspberry-pi-can-bus-interface/
 
 # Stratux Listener
 This is Python script that listens to Stratux GDL90 messages and writes the data into SQLite database (soon). 
